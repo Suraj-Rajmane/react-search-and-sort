@@ -1,9 +1,30 @@
-import React, { useState, memo, Profiler } from "react";
+import React, { useState, memo, Profiler, useEffect } from "react";
 import "./styles.css";
 
 export default function App() {
   const [user, setUser] = useState([]);
+  const [searchedUser, setSearchedUser] = useState(user);
+  const [search, setSearch] = useState("");
+
   const api = `https://randomuser.me/api`;
+
+  useEffect(() => {
+    const searchInputHandler = () => {
+      const filteredAppState = user.filter(
+        (user) =>
+          user.name.first.toLowerCase().includes(search.toLowerCase()) ||
+          user.name.last.toLowerCase().includes(search.toLowerCase()) ||
+          user.email.toLowerCase().includes(search.toLowerCase()) ||
+          (user.gender.toLowerCase().includes(search.toLowerCase()) &&
+            user.gender.toLowerCase().charAt(0) ===
+              search.toLowerCase().charAt(0))
+      );
+
+      setSearchedUser(filteredAppState);
+    };
+
+    searchInputHandler();
+  }, [search, user]);
 
   const addUserHandler = async () => {
     const userData = await fetch(api, {
@@ -17,26 +38,39 @@ export default function App() {
     const newUser = [...user, userJson.results[0]];
 
     setUser(newUser);
+    setSearchedUser(user);
+  };
+
+  const searchChange = (e) => {
+    setSearch(e.target.value);
   };
 
   return (
     <div>
-      <Button addUserHandler={addUserHandler} />
+      <Button clickHandler={addUserHandler} name={"Add User"} />
+      {/* <Button clickHandler={searchInputHandler} name={"Search"}/> */}
+      <input
+        name="search"
+        type="text"
+        placeholder="search"
+        value={search}
+        onChange={searchChange}
+      />
 
       <Profiler
         id="userList"
         onRender={(id, phase, actualDuration) => {
-          console.log({ id, phase, actualDuration });
+          // console.log({ id, phase, actualDuration });
         }}
       >
-        <UserList user={user} />
+        <UserList user={searchedUser} />
       </Profiler>
     </div>
   );
 }
 
-const Button = memo(({ addUserHandler }) => {
-  return <button onClick={addUserHandler}>Add User</button>;
+const Button = memo(({ clickHandler, name }) => {
+  return <button onClick={clickHandler}>{name}</button>;
 });
 
 const UserList = ({ user }) => {
